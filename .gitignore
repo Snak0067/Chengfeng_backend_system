@@ -1,2 +1,4 @@
 # 项目排除路径
 /Chengfeng_backend_system/media/
+/Chengfeng_backend_system/data-prepare/feature/wholebody_hrnet_w48_384x384.pth
+/Chengfeng_backend_system/data-prepare/wholepose/hrnet_w48_coco_wholebody_384x288-6e061c6a_20200922.pth
