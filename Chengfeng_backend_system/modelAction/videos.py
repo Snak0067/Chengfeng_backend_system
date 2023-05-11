@@ -18,17 +18,13 @@ def get_video_list(request):
     """
     获取token解析出来的用户的所有视频信息
     """
-    if request.method == 'POST':
-        # 获取用户名和密码
-        data = json.loads(request.body.decode('utf-8'))
-        token = request.POST.get('token')
-        userid = resolve_token(token)['user_id']
-        videolist = Video.objects.get(userid=userid)
 
-        #
-        #     return json_response(data=responseData, status=200, message="登录成功！")
-        # else:
-        #     return json_response(status=401, message="用户密码错误，验证失败！")
+    if request.method == 'POST':
+        token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
+        userid = resolve_token(token)['user_id']
+        videolist = list(Video.objects.filter(userid=userid).values())
+        responseData = {'videolist': videolist}
+        return json_response(data=responseData, status=200, message="获取视频列表成功！")
     else:
         return json_response(status=500, message="请求方式错误，请使用post请求！")
 
