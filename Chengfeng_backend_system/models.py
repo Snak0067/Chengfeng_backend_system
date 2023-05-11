@@ -19,6 +19,9 @@ class Video(models.Model):
     result = models.CharField(max_length=255, null=True, blank=True)
     create_time = models.DateTimeField()
     update_time = models.DateTimeField()
+    wholePose_path = models.CharField(max_length=255, null=True, blank=True)
+    feature_path = models.CharField(max_length=255, null=True, blank=True)
+    frame_path = models.CharField(max_length=255, null=True, blank=True)
 
 
 class Role(models.Model):

@@ -3,11 +3,12 @@
 # @Time :2023/5/11 10:53
 # @Author :Xiaofeng
 import datetime
-import time
-
 from django.http import HttpResponse
+from django.http.response import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from Chengfeng_backend_system.models import User
+from Chengfeng_backend_system.tools.authVerification import generate_token, validate_user, md5_generation
 from Chengfeng_backend_system.tools.response import json_response
 
 
@@ -54,18 +55,12 @@ def test_update_db(request):
     :param request: web请求
     :return: HttpResponse
     """
-    # 修改其中一个id=1的name字段，再save，相当于SQL中的UPDATE
-    test1 = User.objects.get(id=1)
-    test1.name = 'Google'
-    test1.save()
+    userlist = User.objects.all()
+    for var in userlist:
+        var.password = md5_generation(var.password)
+        var.save()
 
-    # 另外一种方式
-    # Test.objects.filter(id=1).update(name='Google')
-
-    # 修改所有的列
-    # Test.objects.all().update(name='Google')
-
-    return HttpResponse("<p>修改成功</p>")
+    return json_response(data="修改密码成功")
 
 
 # 数据库操作
@@ -81,3 +76,21 @@ def test_delete_db(request):
     # Test.objects.all().delete()
 
     return HttpResponse("<p>删除成功</p>")
+
+
+@csrf_exempt
+def login(request):
+    if request.method == 'POST':
+        # 获取用户名和密码
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        # 验证用户名和密码
+        success, userid = validate_user(username=username, password=password)
+        if success:
+            # 生成token并返回
+            token = generate_token(userid)
+            return JsonResponse({'token': token}, status=200)
+        else:
+            return json_response(status=401, message="User password error, verification failed")
+    else:
+        return json_response(status=500, message="Wrong request method, please use post for request")

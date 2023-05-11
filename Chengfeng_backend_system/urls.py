@@ -7,4 +7,6 @@ urlpatterns = [
     path('uploadVideo/', views.upload_video),
     path('test_add_user/', testdb.test_add_user),
     path('test_get_db_data/', testdb.test_get_db_data),
+    path('test_update_db/', testdb.test_update_db),
+    path('login/', testdb.login),
 ]

@@ -17,6 +17,7 @@
       <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/Chengfeng_backend_system/media" />
       <excludeFolder url="file://$MODULE_DIR$/Chengfeng_backend_system/data-prepare/data" />
+      <excludeFolder url="file://$MODULE_DIR$/Chengfeng_backend_system/migrations" />
     </content>
     <orderEntry type="jdk" jdkName="pytorch-gpu (2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
