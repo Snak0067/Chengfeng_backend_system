@@ -3,6 +3,7 @@
 # @Time :2023/5/8 16:35
 # @Author :Xiaofeng
 from django.conf import settings
+from django.shortcuts import render, HttpResponseRedirect, Http404, HttpResponse
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -25,3 +26,4 @@ def upload_video(request):
                     destination.write(chunk)
             return JsonResponse({'status': 'success', 'file_path': file_path})
     return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
