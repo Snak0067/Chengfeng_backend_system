@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'rest_framework.authtoken',
     'corsheaders',  # 解决跨域问题 修改1
+    'Chengfeng_backend_system',
 ]
 
 MIDDLEWARE = [
@@ -73,9 +74,9 @@ WSGI_APPLICATION = "Chengfeng_backend_system.wsgi.application"
 DATABASES = {
     "default": {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': '127.0.0.1',
+        'HOST': 'localhost',
         'PORT': '3306',
-        'NAME': 'mysql',  # 数据库名
+        'NAME': 'chengfeng_slr',  # 数据库名
         'USER': 'root',
         'PASSWORD': '123456',
         'OPTIONS': {
