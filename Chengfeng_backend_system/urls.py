@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views
-from . import testdb
+from .modelAction import testdb
 
 urlpatterns = [
     path('uploadVideo/', views.upload_video),

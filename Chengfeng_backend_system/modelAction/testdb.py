@@ -8,6 +8,7 @@ import time
 from django.http import HttpResponse
 
 from Chengfeng_backend_system.models import User
+from Chengfeng_backend_system.tools.response import json_response
 
 
 def test_add_user(request):
@@ -31,21 +32,20 @@ def test_get_db_data(request):
 
     # 通过objects这个模型管理器的all()获得所有数据行，相当于SQL中的SELECT * FROM
     list = User.objects.all()
-    # filter相当于SQL中的WHERE，可设置条件过滤结果
-    response2 = User.objects.filter(id=1)
-    # 获取单个对象
-    response3 = User.objects.get(id=1)
-    # 限制返回的数据 相当于 SQL 中的 OFFSET 0 LIMIT 2;
-    User.objects.order_by('name')[0:2]
-    # 数据排序
-    User.objects.order_by("id")
-    # 上面的方法可以连锁使用
-    User.objects.filter(name="runoob").order_by("id")
+    # # filter相当于SQL中的WHERE，可设置条件过滤结果
+    # response2 = User.objects.filter(id=1)
+    # # 获取单个对象
+    # response3 = User.objects.get(id=1)
+    # # 限制返回的数据 相当于 SQL 中的 OFFSET 0 LIMIT 2;
+    # User.objects.order_by('name')[0:2]
+    # # 数据排序
+    # User.objects.order_by("id")
+    # # 上面的方法可以连锁使用
+    # User.objects.filter(name="runoob").order_by("id")
     # 输出所有数据
     for var in list:
         response1 += var.username + " " + str(var.created_time)
-    response = response1
-    return HttpResponse("<p>" + response + "</p>")
+    return json_response(data=response1)
 
 
 def test_update_db(request):
