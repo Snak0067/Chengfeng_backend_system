@@ -123,8 +123,8 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-MEDIA_ROOT = os.path.join(BASE_DIR, 'Chengfeng_backend_system/media')
-MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'Chengfeng_backend_system/data-prepare/data/raw_data')
+MEDIA_URL = '/raw_data/'
 
 # 跨域增加忽略
 CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie

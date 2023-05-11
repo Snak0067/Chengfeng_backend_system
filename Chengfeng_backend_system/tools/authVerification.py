@@ -20,7 +20,7 @@ def generate_token(userid):
     """
 
     # 设置token有效期为30分钟
-    exp_time = datetime.utcnow() + timedelta(minutes=30)
+    exp_time = datetime.utcnow() + timedelta(hours=30)
     payload = {
         'user_id': userid,
         'exp': exp_time

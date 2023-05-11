@@ -3,6 +3,8 @@
 # @Time :2023/5/11 10:53
 # @Author :Xiaofeng
 import datetime
+import json
+
 from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -82,15 +84,17 @@ def test_delete_db(request):
 def login(request):
     if request.method == 'POST':
         # 获取用户名和密码
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+        data = json.loads(request.body.decode('utf-8'))
+        username = data.get('username')
+        password = data.get('password')
         # 验证用户名和密码
         success, userid = validate_user(username=username, password=password)
         if success:
             # 生成token并返回
             token = generate_token(userid)
-            return JsonResponse({'token': token}, status=200)
+            responseData = {'token': token}
+            return json_response(data=responseData, status=200, message="登录成功！")
         else:
-            return json_response(status=401, message="User password error, verification failed")
+            return json_response(status=401, message="用户密码错误，验证失败！")
     else:
-        return json_response(status=500, message="Wrong request method, please use post for request")
+        return json_response(status=500, message="请求方式错误，请使用post请求！")
