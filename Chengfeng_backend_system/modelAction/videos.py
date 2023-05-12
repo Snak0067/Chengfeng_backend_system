@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from Chengfeng_backend_system import settings
 from Chengfeng_backend_system.models import Video
 from Chengfeng_backend_system.tools.authVerification import resolve_token
-from Chengfeng_backend_system.tools.extract_whole_pose import extract_wholepose
+from Chengfeng_backend_system.tools.extract_whole_pose import extract_video_wholepose
 from Chengfeng_backend_system.tools.response import json_response
 
 
@@ -73,10 +73,12 @@ def get_video_list(request):
                 image.save(buffered, format="JPEG")
                 image_str = base64.b64encode(buffered.getvalue()).decode()
                 item['img'] = image_str
-            if item['wholePose_path'] is not None:
-                item['status'] = '已完成'
+            if item['wholePose_path'] and len(item['wholePose_path']) > 10:
+                item['status'] = '已提取特征'
+                item['show_extract_button'] = False
             else:
                 item['status'] = '未提取特征'
+                item['show_extract_button'] = True
         responseData = {'videolist': videolist}
         return json_response(data=responseData, status=200, message="获取视频列表成功！")
     else:
@@ -175,15 +177,15 @@ def video_extract_wholepose(request):
     :param request:
     :return:
     """
-    try:
-        data = json.loads(request.body)
-        video_id = data.get('id')
-        video = Video.objects.get(id=video_id)
-        video_path = video.url
-        npy_path = extract_wholepose(video_path)
-        if npy_path is not None:
-            video.update(wholePose_path=npy_path)
-            return json_response(status=200, message='导出全身姿态估计成功!')
-        return json_response(status=400, message='导出全身姿态估计失败!')
-    except Exception as e:
-        return json_response(status=403, message=str(e))
+    # try:
+    data = json.loads(request.body)
+    video_id = data.get('id')
+    video = Video.objects.get(id=video_id)
+    video_path = video.url
+    npy_path = extract_video_wholepose(video_path)
+    if npy_path is not None:
+        Video.objects.filter(id=video_id).update(wholePose_path=npy_path)
+        return json_response(status=200, message='导出全身姿态估计成功!')
+    return json_response(status=400, message='导出全身姿态估计失败!')
+    # except Exception as e:
+    # return json_response(status=403, message=str(e))

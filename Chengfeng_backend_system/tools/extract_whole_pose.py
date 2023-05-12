@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 
 from Chengfeng_backend_system.tools.pose_hrnet import get_pose_net
 from Chengfeng_backend_system.tools.utils import pose_process
-from config import cfg
+from .config import cfg
 
 mean = (0.485, 0.456, 0.406)
 std = (0.229, 0.224, 0.225)
@@ -62,13 +62,14 @@ def merge_hm(hms_list):
     return hm
 
 
-def extract_wholepose(path):
+def extract_video_wholepose(path):
     with torch.no_grad():
-        config = 'wholebody_w48_384x288.yaml'
+        config = 'Chengfeng_backend_system/data-prepare/wholepose/wholebody_w48_384x288.yaml'
         cfg.merge_from_file(config)
 
         newmodel = get_pose_net(cfg, is_train=False)
-        checkpoint = torch.load('./hrnet_w48_coco_wholebody_384x288-6e061c6a_20200922.pth')
+        checkpoint = torch.load('Chengfeng_backend_system/data-prepare/wholepose/hrnet_w48_coco_wholebody_384x288'
+                                '-6e061c6a_20200922.pth')
 
         state_dict = checkpoint['state_dict']
         new_state_dict = OrderedDict()
@@ -92,9 +93,9 @@ def extract_wholepose(path):
         output_npy = 'D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data/npy3' \
                      '/train/{}.npy'.format(videoName)
 
-        if os.path.exists(output_npy):
-            print("completed!")
-            return
+        # if os.path.exists(output_npy):
+        #     print("completed!")
+        #     return
 
         cap = cv2.VideoCapture(path)
 
