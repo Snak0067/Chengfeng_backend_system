@@ -10,4 +10,6 @@ urlpatterns = [
     path('test_update_db/', testdb.test_update_db),
     path('login/', testdb.login),
     path('video_list/', videos.get_video_list),
+    path('update_video/', videos.update_video),
+    path('delete_video/', videos.delete_video)
 ]

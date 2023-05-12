@@ -2,6 +2,7 @@
 # @FileName :videos.py
 # @Time :2023/5/11 10:19
 # @Author :Xiaofeng
+import json
 from datetime import datetime
 from PIL import Image
 import base64
@@ -47,7 +48,23 @@ def get_video_list(request):
     if request.method == 'POST':
         token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
         userid = resolve_token(token)['user_id']
-        videolist = list(Video.objects.filter(userid=userid).values())
+
+        # 获取需要筛选的数据信息
+        body_data = json.loads(request.body.decode('utf-8'))
+        sort_videoName = body_data.get('title', '')  # 如果没有title，则默认为空字符串
+        sort_videoType = body_data.get('type', '')  # 如果没有type，则默认为空字符串
+        sort_order = body_data.get('sort', 'id')
+        if sort_order == '+id':
+            sort_order = 'id'
+        videolist = Video.objects.filter(userid=userid)
+
+        if sort_videoName:
+            videolist = videolist.filter(videoName=sort_videoName)
+        if sort_videoType:
+            videolist = videolist.filter(videoType=sort_videoType)
+
+        videolist = list(videolist.order_by(sort_order).values())
+
         for item in videolist:
             item['create_time'] = item['create_time'].strftime('%Y-%m-%d %H:%M:%S')
             img_path = item['img']
@@ -78,6 +95,7 @@ def upload_video(request):
             video = Video()
             video_file_data = request.FILES.get('videoFile')
             video.title = request.POST.get('videoName')
+            video.videoType = request.POST.get('videoType'),
             video.description = request.POST.get('videoDescribe')
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             video.create_time = current_time
@@ -87,19 +105,56 @@ def upload_video(request):
             if video_file_data:
                 # 上传的视频的名称
                 file_name = video_file_data.name
+                video.videoName = file_name
                 # 上传的地址
                 file_path = settings.MEDIA_ROOT + '/' + file_name
                 img_path = 'D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data' \
                            '/picture_cover/' + file_name[:-4] + '_1.png'
+
+                with open(file_path, 'wb+') as destination:
+                    for chunk in video_file_data.chunks():
+                        destination.write(chunk)
                 video.url = file_path
                 # 用cv2截取第一张图片作为封面用作前端显示
                 get_video_png(file_path, img_path, 1)
                 video.img = img_path
-                with open(file_path, 'wb+') as destination:
-                    for chunk in video_file_data.chunks():
-                        destination.write(chunk)
+
                 video.save()
+
                 return json_response(status=200, message='上传成功')
     except Exception as e:
         return json_response(status=400, message=str(e))
     return json_response(status=400, message='上传失败!')
+
+
+@csrf_exempt
+def update_video(request):
+    data = json.loads(request.body)
+    video_id = data.get('id')
+    if video_id:
+        video = Video.objects.filter(id=video_id)
+        if video:
+            video.update(
+                title=data.get('title'),
+                videoName=data.get('videoName'),
+                videoType=data.get('videoType'),
+                description=data.get('description'),
+            )
+            return json_response(status=200, message='更新视频数据成功')
+    return json_response(status=400, message='更新数据失败!')
+
+
+@csrf_exempt
+def delete_video(request):
+    data = json.loads(request.body)
+    video_id = data.get('id')
+    if video_id:
+        try:
+            video = Video.objects.get(id=video_id)
+            video.delete()
+            return json_response(status=200, message='删除成功!')
+
+        except Video.DoesNotExist:
+            return json_response(status=403, message='视频不存在!')
+    else:
+        return json_response(status=403, message='Video ID is required!')
