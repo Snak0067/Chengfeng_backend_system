@@ -11,5 +11,6 @@ urlpatterns = [
     path('login/', testdb.login),
     path('video_list/', videos.get_video_list),
     path('update_video/', videos.update_video),
-    path('delete_video/', videos.delete_video)
+    path('delete_video/', videos.delete_video),
+    path('extract_wholepose/', videos.video_extract_wholepose),
 ]

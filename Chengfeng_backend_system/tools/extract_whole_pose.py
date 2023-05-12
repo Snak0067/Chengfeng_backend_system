@@ -1,33 +1,25 @@
-# from __future__ import absolute_import
-# from __future__ import division
-# from __future__ import print_function
+# -*- coding:utf-8 -*-
+# @FileName :extract_whole_pose.py
+# @Time :2023/5/12 18:05
+# @Author :Xiaofeng
 
-import argparse
 import os
-import pprint
+# import coremltools as ct
+from collections import OrderedDict
 
+import cv2
+import numpy as np
 import torch
-import torch.nn.parallel
-import torch.backends.cudnn as cudnn
 import torch.nn.functional as f
+import torch.nn.parallel
 # import torch.optim
 # import torch.utils.data
 # import torch.utils.data.distributed
 import torchvision.transforms as transforms
-from tqdm import tqdm
 
-from pose_hrnet import get_pose_net
-# import coremltools as ct
-from collections import OrderedDict
+from Chengfeng_backend_system.tools.pose_hrnet import get_pose_net
+from Chengfeng_backend_system.tools.utils import pose_process
 from config import cfg
-from config import update_config
-
-from PIL import Image
-import numpy as np
-import cv2
-
-from utils import pose_process, plot_pose
-from natsort import natsorted
 
 mean = (0.485, 0.456, 0.406)
 std = (0.229, 0.224, 0.225)
@@ -160,7 +152,3 @@ def extract_wholepose(path):
         # break
         print("completed!")
         return output_npy
-
-
-if __name__ == '__main__':
-    print(extract_wholepose('Chengfeng_backend_system/data-prepare/data/raw_data/signer0_sample12_color.mp4'))

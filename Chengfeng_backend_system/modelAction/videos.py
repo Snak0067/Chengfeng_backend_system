@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from Chengfeng_backend_system import settings
 from Chengfeng_backend_system.models import Video
 from Chengfeng_backend_system.tools.authVerification import resolve_token
+from Chengfeng_backend_system.tools.extract_whole_pose import extract_wholepose
 from Chengfeng_backend_system.tools.response import json_response
 
 
@@ -27,11 +28,8 @@ def get_video_png(video_path, png_path, zhen_num=1):
     vidcap = cv2.VideoCapture(video_path)
     # 获取帧数
     zhen_count = vidcap.get(7)
-
     if zhen_num > zhen_count:
         zhen_num = 1
-    print(f"zhen_count = {zhen_count} | last zhen_num = {zhen_num}")
-
     # 指定帧
     vidcap.set(cv2.CAP_PROP_POS_FRAMES, zhen_num)
 
@@ -129,6 +127,11 @@ def upload_video(request):
 
 @csrf_exempt
 def update_video(request):
+    """
+    更新视频
+    :param request:
+    :return:
+    """
     data = json.loads(request.body)
     video_id = data.get('id')
     if video_id:
@@ -146,6 +149,11 @@ def update_video(request):
 
 @csrf_exempt
 def delete_video(request):
+    """
+    删除视频
+    :param request:
+    :return:
+    """
     data = json.loads(request.body)
     video_id = data.get('id')
     if video_id:
@@ -159,3 +167,23 @@ def delete_video(request):
     else:
         return json_response(status=403, message='Video ID is required!')
 
+
+@csrf_exempt
+def video_extract_wholepose(request):
+    """
+    对指定的视频id的视频进行全身姿态的估计
+    :param request:
+    :return:
+    """
+    try:
+        data = json.loads(request.body)
+        video_id = data.get('id')
+        video = Video.objects.get(id=video_id)
+        video_path = video.url
+        npy_path = extract_wholepose(video_path)
+        if npy_path is not None:
+            video.update(wholePose_path=npy_path)
+            return json_response(status=200, message='导出全身姿态估计成功!')
+        return json_response(status=400, message='导出全身姿态估计失败!')
+    except Exception as e:
+        return json_response(status=403, message=str(e))
