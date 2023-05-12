@@ -14,11 +14,13 @@ class Permission(models.Model):
 class Video(models.Model):
     userid = models.IntegerField()
     title = models.CharField(max_length=255)
+    videoName = models.CharField(max_length=255)
     description = models.CharField(max_length=255, null=True, blank=True)
     url = models.CharField(max_length=255)
     result = models.CharField(max_length=255, null=True, blank=True)
     create_time = models.DateTimeField()
     update_time = models.DateTimeField()
+    img = models.CharField(max_length=255, null=True, blank=True)
     wholePose_path = models.CharField(max_length=255, null=True, blank=True)
     feature_path = models.CharField(max_length=255, null=True, blank=True)
     frame_path = models.CharField(max_length=255, null=True, blank=True)
