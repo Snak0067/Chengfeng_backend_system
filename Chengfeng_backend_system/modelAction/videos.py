@@ -95,7 +95,7 @@ def upload_video(request):
             video = Video()
             video_file_data = request.FILES.get('videoFile')
             video.title = request.POST.get('videoName')
-            video.videoType = request.POST.get('videoType'),
+            video.videoType = str(request.POST.get('videoType'))
             video.description = request.POST.get('videoDescribe')
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
             video.create_time = current_time

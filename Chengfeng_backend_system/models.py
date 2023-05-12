@@ -21,7 +21,7 @@ class Video(models.Model):
     create_time = models.DateTimeField()
     update_time = models.DateTimeField()
     img = models.CharField(max_length=255, null=True, blank=True)
-    videoType = models.CharField(max_length=255, null=True, blank=True)
+    videoType = models.CharField(max_length=255)
     wholePose_path = models.CharField(max_length=255, null=True, blank=True)
     feature_path = models.CharField(max_length=255, null=True, blank=True)
     frame_path = models.CharField(max_length=255, null=True, blank=True)
