@@ -3,11 +3,14 @@
 # @Time :2023/5/11 10:19
 # @Author :Xiaofeng
 import json
+import os
 from datetime import datetime
 from PIL import Image
 import base64
 import io
 import cv2
+from django.http import FileResponse
+from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from Chengfeng_backend_system import settings
@@ -177,15 +180,45 @@ def video_extract_wholepose(request):
     :param request:
     :return:
     """
-    # try:
+    try:
+        data = json.loads(request.body)
+        video_id = data.get('id')
+        video = Video.objects.get(id=video_id)
+        video_path = video.url
+        npy_path = extract_video_wholepose(video_path)
+        if npy_path is not None:
+            Video.objects.filter(id=video_id).update(wholePose_path=npy_path)
+            return json_response(status=200, message='导出全身姿态估计成功!')
+        return json_response(status=400, message='导出全身姿态估计失败!')
+    except Exception as e:
+        return json_response(status=403, message=str(e))
+
+
+@csrf_exempt
+def download_wholePose_file(request):
+    """
+    下载指定的视频的特征文件
+    :param request:
+    :return:
+    """
     data = json.loads(request.body)
     video_id = data.get('id')
     video = Video.objects.get(id=video_id)
-    video_path = video.url
-    npy_path = extract_video_wholepose(video_path)
-    if npy_path is not None:
-        Video.objects.filter(id=video_id).update(wholePose_path=npy_path)
-        return json_response(status=200, message='导出全身姿态估计成功!')
-    return json_response(status=400, message='导出全身姿态估计失败!')
-    # except Exception as e:
-    # return json_response(status=403, message=str(e))
+    # wholePose_path = video.wholePose_path
+    wholePose_path = "E:/dataset/AUSTL/raw_data/train_data/train_labels.csv"
+
+    def readFile(fn, buf_size=262144):
+        f = open(fn, "rb")
+        while True:
+            c = f.read(buf_size)
+            if c:
+                yield c
+            else:
+                break
+        f.close()
+
+    if os.path.exists(wholePose_path):
+        response = HttpResponse(readFile(wholePose_path))
+        return response
+    else:
+        return json_response(status=403, message="不存在该视频的特征文件")

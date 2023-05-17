@@ -13,4 +13,5 @@ urlpatterns = [
     path('update_video/', videos.update_video),
     path('delete_video/', videos.delete_video),
     path('extract_wholepose/', videos.video_extract_wholepose),
+    path('download_wholePose_file/', videos.download_wholePose_file),
 ]
