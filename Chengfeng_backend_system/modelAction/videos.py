@@ -40,6 +40,13 @@ def get_video_png(video_path, png_path, zhen_num=1):
     imag = cv2.imwrite(png_path, image)
 
 
+def getVideoCover(video_path):
+    vidcap = cv2.VideoCapture(video_path)
+    vidcap.set(cv2.CAP_PROP_POS_FRAMES, 1)
+    success, image = vidcap.read()
+    return image
+
+
 @csrf_exempt
 def get_video_list(request):
     """
@@ -222,3 +229,22 @@ def download_wholePose_file(request):
         return response
     else:
         return json_response(status=403, message="不存在该视频的特征文件")
+
+
+@csrf_exempt
+def get_video_cover(request):
+    video_data = request.FILES.get('videoFile')
+    if video_data:
+        # 上传的视频的名称
+        file_name = video_data.name
+        # 上传的地址
+        file_path = settings.MEDIA_ROOT + '/' + file_name
+        img_path = 'D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data' \
+                   '/picture_cover/' + file_name[:-4] + '_1.png'
+        with open(file_path, 'wb+') as destination:
+            for chunk in video_data.chunks():
+                destination.write(chunk)
+        # 用cv2截取第一张图片作为封面用作前端显示
+        img_cover = getVideoCover(file_path)
+        responseData = {'imgCover': img_cover}
+        return json_response(data=responseData, status=200, message="获取视频封面成功")

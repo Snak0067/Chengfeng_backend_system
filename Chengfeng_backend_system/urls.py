@@ -1,6 +1,5 @@
 from django.urls import path
 
-from . import views
 from .modelAction import testdb, videos
 
 urlpatterns = [
@@ -14,4 +13,5 @@ urlpatterns = [
     path('delete_video/', videos.delete_video),
     path('extract_wholepose/', videos.video_extract_wholepose),
     path('download_wholePose_file/', videos.download_wholePose_file),
+    path('get_video_cover/', videos.get_video_cover),
 ]
