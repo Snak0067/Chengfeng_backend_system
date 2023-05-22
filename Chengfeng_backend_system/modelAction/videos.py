@@ -2,14 +2,16 @@
 # @FileName :videos.py
 # @Time :2023/5/11 10:19
 # @Author :Xiaofeng
-import json
-import os
-from datetime import datetime
-from PIL import Image
 import base64
 import io
+import json
+import os
+import re
+import subprocess
+from datetime import datetime
+
 import cv2
-from django.http import FileResponse
+from PIL import Image
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
@@ -30,21 +32,23 @@ def get_video_png(video_path, png_path, zhen_num=1):
     """
     vidcap = cv2.VideoCapture(video_path)
     # 获取帧数
-    zhen_count = vidcap.get(7)
-    if zhen_num > zhen_count:
-        zhen_num = 1
+    num_frames = vidcap.get(7)
+    # 获得速率
+    rate = vidcap.get(5)
+    # 获得时长
+    duration = num_frames * 10 // rate / 10
     # 指定帧
-    vidcap.set(cv2.CAP_PROP_POS_FRAMES, zhen_num)
+    vidcap.set(cv2.CAP_PROP_POS_FRAMES, 1)
+    # 获取视频的宽度（单位：像素）
+    width = vidcap.get(cv2.CAP_PROP_FRAME_WIDTH)
+
+    # 获取视频的高度（单位：像素）
+    height = vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
     success, image = vidcap.read()
     imag = cv2.imwrite(png_path, image)
 
-
-def getVideoCover(video_path):
-    vidcap = cv2.VideoCapture(video_path)
-    vidcap.set(cv2.CAP_PROP_POS_FRAMES, 1)
-    success, image = vidcap.read()
-    return image
+    return num_frames, duration, width, height
 
 
 @csrf_exempt
@@ -245,6 +249,19 @@ def get_video_cover(request):
             for chunk in video_data.chunks():
                 destination.write(chunk)
         # 用cv2截取第一张图片作为封面用作前端显示
-        img_cover = getVideoCover(file_path)
-        responseData = {'imgCover': img_cover}
-        return json_response(data=responseData, status=200, message="获取视频封面成功")
+        num_frames, duration, width, height = get_video_png(file_path, img_path, 1)
+        # 返回文件响应
+        with open(img_path, 'rb') as f:
+            image_data = f.read()
+            image = Image.open(io.BytesIO(image_data))
+            buffered = io.BytesIO()
+            image.save(buffered, format="JPEG")
+            image_str = base64.b64encode(buffered.getvalue()).decode()
+            imageInfo = {
+                "frame": num_frames,
+                "width": width,
+                "height": height,
+                "duration": duration,
+                "imageUrl": image_str
+            }
+        return json_response(data=imageInfo, message='获取视频封面成功！')
