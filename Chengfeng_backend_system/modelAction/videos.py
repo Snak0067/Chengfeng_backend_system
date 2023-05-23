@@ -88,10 +88,16 @@ def get_video_list(request):
                 image_str = base64.b64encode(buffered.getvalue()).decode()
                 item['img'] = image_str
             if item['wholePose_path'] and len(item['wholePose_path']) > 10:
-                item['status'] = '已提取特征'
+                item['whole_pose_status'] = '已提取特征'
                 item['show_extract_button'] = False
             else:
-                item['status'] = '未提取特征'
+                item['whole_pose_status'] = '未提取特征'
+                item['show_extract_button'] = True
+            if item['frame_path'] and len(item['frame_path']) > 10:
+                item['frame_status'] = '已分离RGB帧'
+                item['show_extract_button'] = False
+            else:
+                item['frame_status'] = '未提取RGB帧'
                 item['show_extract_button'] = True
         responseData = {'videolist': videolist}
         return json_response(data=responseData, status=200, message="获取视频列表成功！")
@@ -265,3 +271,89 @@ def get_video_cover(request):
                 "imageUrl": image_str
             }
         return json_response(data=imageInfo, message='获取视频封面成功！')
+
+
+def read_frames_from_folder(folder_path):
+    frames = []
+
+    # 获取文件夹中所有的文件名
+    file_names = os.listdir(folder_path)
+
+    # 遍历文件名并读取图像文件
+    for file_name in file_names:
+        file_path = os.path.join(folder_path, file_name)
+        if os.path.isfile(file_path):
+            with open(file_path, 'rb') as f:
+                image_data = f.read()
+                image = Image.open(io.BytesIO(image_data))
+                buffered = io.BytesIO()
+                image.save(buffered, format="JPEG")
+                image_str = base64.b64encode(buffered.getvalue()).decode()
+                # 将图像添加到帧列表中
+                frames.append(image_str)
+    return frames
+
+
+@csrf_exempt
+def split_video_to_frames(request):
+    data = json.loads(request.body)
+    video_id = data.get('id')
+    video = Video.objects.get(id=video_id)
+    output_folder = 'D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data/frame/'
+    output_folder = os.path.join(output_folder, os.path.basename(video.url))
+    os.makedirs(output_folder, exist_ok=True)
+    # 打开视频文件
+    vidcap = cv2.VideoCapture(video.url)
+    success, image = vidcap.read()
+    frame_count = 0
+
+    while success:
+        # 生成帧文件名
+        frame_filename = os.path.join(output_folder, f"{os.path.basename(video.url)}_{frame_count}.jpg")
+
+        # 保存帧为图像文件
+        cv2.imwrite(frame_filename, image)
+
+        # 读取下一帧
+        success, image = vidcap.read()
+        frame_count += 1
+
+    vidcap.release()
+    frames = read_frames_from_folder(output_folder)
+    for i in range(len(frames)):
+        frames[i] = 'data:image/jpeg;base64,' + frames[i]
+    finalList = [frames[i:i + 9] for i in range(0, len(frames), 9)]
+    video.frame_path = output_folder
+    video.save()
+    return json_response(data=finalList, message='返回视频帧！')
+
+
+@csrf_exempt
+def get_video_frames(request):
+    data = json.loads(request.body)
+    token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
+    userid = resolve_token(token)['user_id']
+    video_id = data.get('id')
+    video = Video.objects.filter(id=video_id, userid=userid).first()
+    frame_folder = video.frame_path
+    frames = read_frames_from_folder(frame_folder)
+    for i in range(len(frames)):
+        frames[i] = 'data:image/jpeg;base64,' + frames[i]
+    finalList = [frames[i:i + 9] for i in range(0, len(frames), 9)]
+    return json_response(data=finalList, message='返回视频帧！')
+
+
+@csrf_exempt
+def extract_wholePose_with_videoFile(request):
+    video_data = request.FILES.get('videoFile')
+    if video_data:
+        # 上传的视频的名称
+        file_name = video_data.name
+        # 上传的地址
+        file_path = settings.MEDIA_ROOT + '/' + file_name
+        with open(file_path, 'wb+') as destination:
+            for chunk in video_data.chunks():
+                destination.write(chunk)
+        npy_path = extract_video_wholepose(file_path)
+        if npy_path is not None:
+            return json_response(status=200, message='导出全身姿态估计成功!')

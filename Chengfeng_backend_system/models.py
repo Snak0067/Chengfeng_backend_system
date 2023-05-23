@@ -27,6 +27,16 @@ class Video(models.Model):
     frame_path = models.CharField(max_length=255, null=True, blank=True)
 
 
+class VideoForRecognition(models.Model):
+    userid = models.IntegerField()
+    videoName = models.CharField(max_length=255)
+    videoPath = models.CharField(max_length=255)
+    videoCoverPath = models.CharField(max_length=255, null=True, blank=True)
+    frame_path = models.CharField(max_length=255, null=True, blank=True)
+    wholePose_path = models.CharField(max_length=255, null=True, blank=True)
+    feature_path = models.CharField(max_length=255, null=True, blank=True)
+
+
 class Role(models.Model):
     name = models.CharField(max_length=50, unique=True)
     description = models.CharField(max_length=255, null=True, blank=True)

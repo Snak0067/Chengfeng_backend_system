@@ -14,4 +14,7 @@ urlpatterns = [
     path('extract_wholepose/', videos.video_extract_wholepose),
     path('download_wholePose_file/', videos.download_wholePose_file),
     path('get_video_cover/', videos.get_video_cover),
+    path('split_video_to_frames/', videos.split_video_to_frames),
+    path('get_video_frames/', videos.get_video_frames),
+
 ]
