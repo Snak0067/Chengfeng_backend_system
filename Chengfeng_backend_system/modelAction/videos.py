@@ -258,19 +258,13 @@ def get_video_cover(request):
         # 用cv2截取第一张图片作为封面用作前端显示
         num_frames, duration, width, height = get_video_png(file_path, img_path, 1)
         # 返回文件响应
-        with open(img_path, 'rb') as f:
-            image_data = f.read()
-            image = Image.open(io.BytesIO(image_data))
-            buffered = io.BytesIO()
-            image.save(buffered, format="JPEG")
-            image_str = base64.b64encode(buffered.getvalue()).decode()
-            imageInfo = {
-                "frame": num_frames,
-                "width": width,
-                "height": height,
-                "duration": duration,
-                "imageUrl": image_str
-            }
+        imageInfo = {
+            "frame": num_frames,
+            "width": width,
+            "height": height,
+            "duration": duration,
+            "imageUrl": videoHelper.transform_imamge_base64(img_path)
+        }
         videoForRecognition.videoName = file_name
         videoForRecognition.videoPath = file_path
         videoForRecognition.videoCoverPath = img_path
@@ -383,7 +377,9 @@ def get_recognition_video(request):
         "duration": [],
         "frames": [],
         "imgUrls": [],
-        "sourceUrls": []
+        "sourceUrls": [],
+        "active": [],
+        "result": []
     }
     for video in videoList:
         info["videoId"].append(video.id)
@@ -392,4 +388,48 @@ def get_recognition_video(request):
         info["frames"].append(video.num_frames)
         info["imgUrls"].append(videoHelper.transform_imamge_base64(video.videoCoverPath))
         info["sourceUrls"].append(videoHelper.transform_video_base64(video.videoPath))
+        info["active"].append(videoHelper.judge_video_provess(video))
     return json_response(status=200, data=info, message='获取视频流列表成功!')
+
+
+@csrf_exempt
+def delete_recognition_video(request):
+    data = json.loads(request.body)
+    video_id = data.get('videoId')
+    video = VideoForRecognition.objects.get(id=video_id)
+    video.delete()
+    return json_response(status=200, message='删除视频流成功!')
+
+
+@csrf_exempt
+def recognition_video_to_frames(request):
+    data = json.loads(request.body)
+    video_id = data.get('id')
+    video = VideoForRecognition.objects.get(id=video_id)
+    output_folder = 'D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data/frame/'
+    output_folder = os.path.join(output_folder, os.path.basename(video.url))
+    os.makedirs(output_folder, exist_ok=True)
+    # 打开视频文件
+    vidcap = cv2.VideoCapture(video.url)
+    success, image = vidcap.read()
+    frame_count = 0
+
+    while success:
+        # 生成帧文件名
+        frame_filename = os.path.join(output_folder, f"{os.path.basename(video.url)}_{frame_count}.jpg")
+
+        # 保存帧为图像文件
+        cv2.imwrite(frame_filename, image)
+
+        # 读取下一帧
+        success, image = vidcap.read()
+        frame_count += 1
+
+    vidcap.release()
+    frames = read_frames_from_folder(output_folder)
+    for i in range(len(frames)):
+        frames[i] = 'data:image/jpeg;base64,' + frames[i]
+    finalList = [frames[i:i + 9] for i in range(0, len(frames), 9)]
+    video.frame_path = output_folder
+    video.save()
+    return json_response(data=finalList, message='返回视频帧！')

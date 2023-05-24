@@ -31,6 +31,7 @@ class VideoForRecognition(models.Model):
     userid = models.IntegerField()
     videoName = models.CharField(max_length=255)
     videoPath = models.CharField(max_length=255)
+    result = models.CharField(max_length=255)
     shape_width = models.CharField(max_length=255, default=244)
     shape_height = models.CharField(max_length=255, default=168)
     duration = models.FloatField(default=2.0)
