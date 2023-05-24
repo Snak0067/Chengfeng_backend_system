@@ -6,17 +6,15 @@ import base64
 import io
 import json
 import os
-import re
-import subprocess
 from datetime import datetime
-
+from ..tools import videoHelper
 import cv2
 from PIL import Image
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from Chengfeng_backend_system import settings
-from Chengfeng_backend_system.models import Video
+from Chengfeng_backend_system.models import Video, VideoForRecognition
 from Chengfeng_backend_system.tools.authVerification import resolve_token
 from Chengfeng_backend_system.tools.extract_whole_pose import extract_video_wholepose
 from Chengfeng_backend_system.tools.response import json_response
@@ -244,6 +242,9 @@ def download_wholePose_file(request):
 @csrf_exempt
 def get_video_cover(request):
     video_data = request.FILES.get('videoFile')
+    videoForRecognition = VideoForRecognition()
+    token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
+    userid = resolve_token(token)['user_id']
     if video_data:
         # 上传的视频的名称
         file_name = video_data.name
@@ -270,6 +271,16 @@ def get_video_cover(request):
                 "duration": duration,
                 "imageUrl": image_str
             }
+        videoForRecognition.videoName = file_name
+        videoForRecognition.videoPath = file_path
+        videoForRecognition.videoCoverPath = img_path
+        videoForRecognition.userid = userid
+        videoForRecognition.shape_width = width
+        videoForRecognition.shape_height = height
+        videoForRecognition.duration = duration
+        videoForRecognition.num_frames = num_frames
+        videoForRecognition.save()
+        imageInfo['videoId'] = videoForRecognition.id
         return json_response(data=imageInfo, message='获取视频封面成功！')
 
 
@@ -344,16 +355,41 @@ def get_video_frames(request):
 
 
 @csrf_exempt
-def extract_wholePose_with_videoFile(request):
-    video_data = request.FILES.get('videoFile')
-    if video_data:
-        # 上传的视频的名称
-        file_name = video_data.name
-        # 上传的地址
-        file_path = settings.MEDIA_ROOT + '/' + file_name
-        with open(file_path, 'wb+') as destination:
-            for chunk in video_data.chunks():
-                destination.write(chunk)
-        npy_path = extract_video_wholepose(file_path)
-        if npy_path is not None:
-            return json_response(status=200, message='导出全身姿态估计成功!')
+def recognition_get_wholePose(request):
+    data = json.loads(request.body)
+    video_id = data.get('videoId')
+    video = VideoForRecognition.objects.get(id=video_id)
+    video_path = video.videoPath
+    npy_path = extract_video_wholepose(video_path)
+    if npy_path is not None:
+        video.wholePose_path = npy_path
+        video.save()
+        return json_response(status=200, message='导出全身姿态估计成功!')
+
+
+@csrf_exempt
+def get_recognition_video(request):
+    """
+    获取所有用于手语识别的视频信息
+    :param videoId:
+    :return:
+    """
+    token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
+    userid = resolve_token(token)['user_id']
+    videoList = VideoForRecognition.objects.filter(userid=userid)
+    info = {
+        "videoId": [],
+        "shape": [],
+        "duration": [],
+        "frames": [],
+        "imgUrls": [],
+        "sourceUrls": []
+    }
+    for video in videoList:
+        info["videoId"].append(video.id)
+        info["shape"].append([video.shape_width, video.shape_height])
+        info["duration"].append(video.duration)
+        info["frames"].append(video.num_frames)
+        info["imgUrls"].append(videoHelper.transform_imamge_base64(video.videoCoverPath))
+        info["sourceUrls"].append(videoHelper.transform_video_base64(video.videoPath))
+    return json_response(status=200, data=info, message='获取视频流列表成功!')

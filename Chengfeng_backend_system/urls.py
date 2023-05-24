@@ -16,5 +16,7 @@ urlpatterns = [
     path('get_video_cover/', videos.get_video_cover),
     path('split_video_to_frames/', videos.split_video_to_frames),
     path('get_video_frames/', videos.get_video_frames),
+    path('recognition_get_wholePose/', videos.recognition_get_wholePose),
+    path('getAllVideoInfo/', videos.get_recognition_video),
 
 ]
