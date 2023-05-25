@@ -407,29 +407,9 @@ def recognition_video_to_frames(request):
     video_id = data.get('id')
     video = VideoForRecognition.objects.get(id=video_id)
     output_folder = 'D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data/frame/'
-    output_folder = os.path.join(output_folder, os.path.basename(video.url))
-    os.makedirs(output_folder, exist_ok=True)
-    # 打开视频文件
-    vidcap = cv2.VideoCapture(video.url)
-    success, image = vidcap.read()
-    frame_count = 0
-
-    while success:
-        # 生成帧文件名
-        frame_filename = os.path.join(output_folder, f"{os.path.basename(video.url)}_{frame_count}.jpg")
-
-        # 保存帧为图像文件
-        cv2.imwrite(frame_filename, image)
-
-        # 读取下一帧
-        success, image = vidcap.read()
-        frame_count += 1
-
-    vidcap.release()
-    frames = read_frames_from_folder(output_folder)
-    for i in range(len(frames)):
-        frames[i] = 'data:image/jpeg;base64,' + frames[i]
-    finalList = [frames[i:i + 9] for i in range(0, len(frames), 9)]
-    video.frame_path = output_folder
+    frame_path = videoHelper.generate_frames_bependOn_npy(video_path=video.videoPath,
+                                                          npy_folder=video.wholePose_path,
+                                                          out_folder=output_folder)
+    video.frame_path = frame_path
     video.save()
-    return json_response(data=finalList, message='返回视频帧！')
+    return json_response(message='返回视频帧！')
