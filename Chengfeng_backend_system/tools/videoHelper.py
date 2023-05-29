@@ -93,7 +93,6 @@ def crop(image, center, radius, size=512):
 
 def generate_frames_bependOn_npy(video_path, npy_folder, out_folder):
     name = os.path.basename(video_path)
-    print(name)
     cap = cv2.VideoCapture(video_path)
     npy = np.load(npy_folder).astype(np.float32)
     npy = npy[:, selected_joints, :2]

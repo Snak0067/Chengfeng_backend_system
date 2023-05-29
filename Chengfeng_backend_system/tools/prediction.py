@@ -7,12 +7,13 @@ from collections import OrderedDict
 from random import random
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 from PIL import Image, ImageOps
 
-from models.Conv3D import r2plus1d_18
+from Chengfeng_backend_system.tools.models.Conv3D import r2plus1d_18
 
 # Hyperparams
 num_classes = 226  # 100
@@ -36,10 +37,9 @@ transform = transforms.Compose([transforms.Resize([sample_size, sample_size]),
 
 
 def get_video_item(images_path):
-    images = []
-    for i in range(test_clips):
-        images.append(read_images(images_path, i))
+    images = [read_images(images_path, 1)]
     images = torch.stack(images, dim=0)
+    # images = read_images(images_path)
     return images
 
 
@@ -91,9 +91,11 @@ def frame_indices_tranform_test(video_length, sample_duration, clip_no=0):
 
 def prediction(video_path):
     inputs_clips = get_video_item(video_path)
+    inputs_clips = inputs_clips.to(device)
     model = r2plus1d_18(pretrained=True, num_classes=226)
     # load pretrained
-    checkpoint = torch.load('checkpoints/sign_resnet2d+1_epoch099.pth')
+    checkpoint = torch.load('D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/tools/checkpoints'
+                            '/sign_resnet2d+1_epoch099.pth')
     new_state_dict = OrderedDict()
     for k, v in checkpoint.items():
         name = k[7:]  # remove 'module.'
@@ -102,21 +104,42 @@ def prediction(video_path):
     model = model.to(device)
     model = nn.DataParallel(model)
     # prediction
-    outputs_clips = []
-    for i_clip in range(inputs_clips.size(1)):
-        inputs = inputs_clips[:, i_clip, :, :]
-        outputs_clips.append(model(inputs))
+    outputs_clips = [model(inputs_clips)]
     outputs = torch.mean(torch.stack(outputs_clips, dim=0), dim=0)
     # collect labels & prediction
-    prediction = torch.max(outputs, 1)[1]
-    score_frag = outputs.data.cpu().numpy()
-    score = np.concatenate(score_frag)
 
-    print(prediction, score_frag, score)
-    return prediction
+    prediction = torch.max(outputs, 1)[1]
+    labels_list = label_list()
+    # 将数字标签转换为相应的标签名称
+    predicted_labels = [labels_list[label] for label in prediction.cpu().data.numpy()]
+    print(predicted_labels)
+
+    # 获取前五个预测结果及其相应的百分比
+    top5_probs, top5_labels = torch.topk(outputs, k=5)
+    prob_percentages = torch.nn.functional.softmax(top5_probs, dim=1) * 100
+    # 将标签索引转换为标签名称
+    predicted_labels = [labels_list[label] for label in top5_labels[0].cpu().data.numpy()]
+    percentage_values = prob_percentages[0].cpu().data.numpy().tolist()
+    # 打印前五个标签及其所占百分比
+    for label, percentage in zip(predicted_labels, percentage_values):
+        print(f"标签: {label}，百分比: {percentage}%")
+
+    top_label = predicted_labels[0]
+    prediction_result = []
+    for i in range(len(predicted_labels)):
+        prediction_result.append([predicted_labels[i], "{:.2f}".format(percentage_values[i])])
+    return top_label, prediction_result
+
+
+def label_list():
+    label_path = "D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/tools/SignList_ClassId_TR_EN.csv"
+    # 读取Excel文件
+    df = pd.read_csv(label_path)
+    # 获取'EN'列的值作为标签列表
+    labels_list = df['EN'].tolist()
+    return labels_list
 
 
 if __name__ == '__main__':
-    video_path = "D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data/frame/05234" \
-                 ".mp4"
+    video_path = "D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data/frame/05234"
     prediction(video_path)

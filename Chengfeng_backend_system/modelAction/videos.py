@@ -9,6 +9,7 @@ import os
 from datetime import datetime
 from ..tools import videoHelper
 import cv2
+import ast
 from PIL import Image
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -18,6 +19,7 @@ from Chengfeng_backend_system.models import Video, VideoForRecognition
 from Chengfeng_backend_system.tools.authVerification import resolve_token
 from Chengfeng_backend_system.tools.extract_whole_pose import extract_video_wholepose
 from Chengfeng_backend_system.tools.response import json_response
+from ..tools.prediction import prediction
 
 
 def get_video_png(video_path, png_path, zhen_num=1):
@@ -350,15 +352,18 @@ def get_video_frames(request):
 
 @csrf_exempt
 def recognition_get_wholePose(request):
-    data = json.loads(request.body)
-    video_id = data.get('videoId')
-    video = VideoForRecognition.objects.get(id=video_id)
-    video_path = video.videoPath
-    npy_path = extract_video_wholepose(video_path)
-    if npy_path is not None:
-        video.wholePose_path = npy_path
-        video.save()
-        return json_response(status=200, message='导出全身姿态估计成功!')
+    try:
+        data = json.loads(request.body)
+        video_id = data.get('videoId')
+        video = VideoForRecognition.objects.get(id=video_id)
+        video_path = video.videoPath
+        npy_path = extract_video_wholepose(video_path)
+        if npy_path is not None:
+            video.wholePose_path = npy_path
+            video.save()
+            return json_response(status=200, message='导出全身姿态估计成功!')
+    except Exception:
+        return json_response(status=400, message='导出全身姿态估计失败!')
 
 
 @csrf_exempt
@@ -379,7 +384,8 @@ def get_recognition_video(request):
         "imgUrls": [],
         "sourceUrls": [],
         "active": [],
-        "result": []
+        "result": [],
+
     }
     for video in videoList:
         info["videoId"].append(video.id)
@@ -389,6 +395,10 @@ def get_recognition_video(request):
         info["imgUrls"].append(videoHelper.transform_imamge_base64(video.videoCoverPath))
         info["sourceUrls"].append(videoHelper.transform_video_base64(video.videoPath))
         info["active"].append(videoHelper.judge_video_provess(video))
+        if video.result is not None and len(video.result) > 5:
+            info["result"].append(ast.literal_eval(video.result))
+        else:
+            info["result"].append([])
     return json_response(status=200, data=info, message='获取视频流列表成功!')
 
 
@@ -413,3 +423,19 @@ def recognition_video_to_frames(request):
     video.frame_path = frame_path
     video.save()
     return json_response(message='返回视频帧！')
+
+
+@csrf_exempt
+def prediction_video(request):
+    data = json.loads(request.body)
+    video_id = data.get('id')
+    video = VideoForRecognition.objects.get(id=video_id)
+    top_label, prediction_result = prediction(video.frame_path)
+
+    video.result = json.dumps(prediction_result)
+    info = {
+        "top_label": top_label,
+        "top5_result": json.dumps(prediction_result)
+    }
+    video.save()
+    return json_response(status=200, data=info, message='预测视频成功!')
