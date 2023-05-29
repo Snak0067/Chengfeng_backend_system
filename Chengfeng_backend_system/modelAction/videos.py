@@ -10,6 +10,7 @@ from datetime import datetime
 from ..tools import videoHelper
 import cv2
 import ast
+import requests
 from PIL import Image
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -89,10 +90,10 @@ def get_video_list(request):
                 item['img'] = image_str
             if item['wholePose_path'] and len(item['wholePose_path']) > 10:
                 item['whole_pose_status'] = '已提取特征'
-                item['show_extract_button'] = False
+                item['show_extract_pose_button'] = False
             else:
                 item['whole_pose_status'] = '未提取特征'
-                item['show_extract_button'] = True
+                item['show_extract_pose_button'] = True
             if item['frame_path'] and len(item['frame_path']) > 10:
                 item['frame_status'] = '已分离RGB帧'
                 item['show_extract_button'] = False
@@ -439,3 +440,18 @@ def prediction_video(request):
     }
     video.save()
     return json_response(status=200, data=info, message='预测视频成功!')
+
+
+@csrf_exempt
+def get_reccoginition_video_frames(request):
+    data = json.loads(request.body)
+    token = request.META.get('HTTP_AUTHORIZATION').split(' ')[1]
+    userid = resolve_token(token)['user_id']
+    video_id = data.get('id')
+    video = VideoForRecognition.objects.filter(id=video_id, userid=userid).first()
+    frame_folder = video.frame_path
+    frames = read_frames_from_folder(frame_folder)
+    for i in range(len(frames)):
+        frames[i] = 'data:image/jpeg;base64,' + frames[i]
+    finalList = [frames[i:i + 9] for i in range(0, len(frames), 9)]
+    return json_response(data=finalList, message='返回视频帧！')

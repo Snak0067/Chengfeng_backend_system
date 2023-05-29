@@ -20,5 +20,6 @@ urlpatterns = [
     path('getAllVideoInfo/', videos.get_recognition_video),
     path('delete_recognition_video/', videos.delete_recognition_video),
     path('recognition_video_to_frames/', videos.recognition_video_to_frames),
-    path('prediction_video/', videos.prediction_video)
+    path('prediction_video/', videos.prediction_video),
+    path('get_reccoginition_video_frames/', videos.get_reccoginition_video_frames)
 ]

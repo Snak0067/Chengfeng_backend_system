@@ -3,13 +3,19 @@
 # @Time :2023/5/24 21:11
 # @Author :Xiaofeng
 import base64
+import hashlib
 import io
+import json
+import os
+import random
+import subprocess
+import time
 
 import cv2
 import numpy as np
+import requests
+import urllib3
 from PIL import Image
-import os
-import subprocess
 
 
 def transform_video_base64(video_path):
@@ -119,5 +125,92 @@ def generate_frames_bependOn_npy(video_path, npy_folder, out_folder):
     return frame_path
 
 
+def get_nonce():
+    pool = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    length = 10
+    ret = ""
+
+    while len(ret) < length:
+        ret += random.choice(pool)
+    return ret
+
+
+def get_token():
+    ts = str(int(time.time()))
+    nonce = get_nonce()
+    access_key = "egzQr3aNyhPyNrW0YGZ7b4Bn"
+    secret_key = "k94noDydjuegZRN6a0JbEYaq"
+
+    concat_string = "uri=/api/v1/openapi/auth&ts=%s&nonce=%s&accessKey=%s&secretKey=%s" % (
+        ts, nonce, access_key, secret_key)
+    sign = hashlib.sha256(concat_string.encode("utf-8")).hexdigest()
+
+    url = "https://platform.openmmlab.com/gw/user-service/api/v1/openapi/auth"
+    headers = {
+        "ts": ts,
+        "nonce": nonce,
+        "sign": sign,
+        "accessKey": access_key
+    }
+    requests.DEFAULT_RETRIES = 10
+    s = requests.session()
+    s.keep_alive = False
+    ret = requests.post(url, headers=headers, verify=False)
+    urllib3.disable_warnings()
+    response = json.loads(ret.content)
+    print(response['data']['accessToken'])
+    return response['data']['accessToken']
+
+
+def upload_file(img_path, token):
+    url = "https://platform.openmmlab.com/gw/upload-service/api/v1/uploadFile"
+
+    params = {
+        "key": "inference",
+        "tag": "detection"
+    }
+
+    files = [
+        ('file', ('', open(img_path, 'rb'), 'image/jpeg'))
+    ]
+
+    headers = {
+        "Authorization": token
+    }
+
+    response = requests.request("POST", url, params=params, headers=headers, files=files)
+    response = json.loads(response.text)
+    print('upload_img_path', response['data']['fileUrl'])
+    return response['data']['fileUrl']
+
+
+def get_pose(img_path):
+    token = get_token()
+    url = "https://platform.openmmlab.com/gw/model-inference/openapi/v1/pose"
+    access_token = token
+
+    body = {
+        "resource": "https://platform.openmmlab.com/web-demo/static/humanOne.ca88d32a.jpg",
+        "resourceType": "URL",
+        "requestType": "SYNC",
+        "algorithm": "topdown_heatmap",
+        "dataset": "COCO",
+        "subType": "wholebody",
+        "method": "top_down"
+    }
+
+    headers = {
+        'Authorization': access_token
+    }
+
+    response = requests.post(url, headers=headers, json=body)
+    print(response.text)
+    response = json.loads(response.text)
+    post_img_url = response['data']['result']
+    print(post_img_url)
+    return post_img_url
+
+
 if __name__ == '__main__':
-    video_transcoding()
+    img_path = 'D:/Code/PythonCode/Chengfeng_backend_system/Chengfeng_backend_system/data-prepare/data/picture_cover/00382_1.png'
+    get_pose(img_path)
